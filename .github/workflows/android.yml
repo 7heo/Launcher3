@@ -1,0 +1,41 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "o-mr1" ]
+  pull_request:
+    branches: [ "o-mr1" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: set up JDK 8
+      uses: actions/setup-java@v3
+      with:
+        java-version: '8'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Get gradle specified in gradle-wrapper.properties
+      run: |
+        . gradle/wrapper/gradle-wrapper.properties
+        wget $distributionUrl
+        basename $distributionUrl | rev | sed 's/^[^0-9]*//' \
+        | rev > gradle.version
+    - name: Unzip gradle specified in gradle-wrapper.properties
+      run: unzip $(cat gradle.version)-bin.zip
+    - name: make wrapper
+      run: $(cat gradle.version)/bin/gradle wrapper
+    - name: Build with Gradle
+      run: ./gradlew assembleDebug
+
+    - name: Publish build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build
+        path: |
+          build
